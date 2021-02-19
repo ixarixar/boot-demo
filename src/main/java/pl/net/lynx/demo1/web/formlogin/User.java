@@ -81,8 +81,8 @@ public class User implements UserDetails {
         this.accountNonLocked = accountNonLocked;
     }
 
-    public boolean getAccountNonLocked() {
-        return accountNonLocked;
-    }
+//    public boolean getAccountNonLocked() {
+//        return accountNonLocked;
+//    }
 
 }

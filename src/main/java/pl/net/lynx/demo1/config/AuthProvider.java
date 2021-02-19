@@ -2,6 +2,7 @@ package pl.net.lynx.demo1.config;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.LockedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -14,14 +15,13 @@ import pl.net.lynx.demo1.web.formlogin.User;
 import pl.net.lynx.demo1.web.formlogin.UserRepository;
 
 import java.util.Collections;
-import java.util.Optional;
 
 @Component
 public class AuthProvider implements AuthenticationProvider {
     private static final int ATTEMPTS_LIMIT = 3;
 
     @Autowired private SecurityUserDetailsService userDetailsService;
-    @Autowired private PasswordEncoder passwordEncoder;
+    @Autowired private PasswordEncoder encoder;
     @Autowired private AttemptsRepository attemptsRepository;
     @Autowired private UserRepository userRepository;
 
@@ -30,76 +30,68 @@ public class AuthProvider implements AuthenticationProvider {
     @Override
     public Authentication authenticate(Authentication authentication) throws AuthenticationException {
 
-        String userName = authentication.getName();
-        Optional<User> user = userRepository.findUserByUsername(userName);
+        String username = authentication.getPrincipal() + "";
+        String password = authentication.getCredentials() + "";
 
-        if(user.isPresent()){
+        System.out.println("username = " + username + " password = " + password);
 
-            String pass = authentication.getCredentials() == null ? "" : authentication.getCredentials().toString();
+        User user = userRepository.findUserByUsername(username);
 
-            System.out.println("user : " + user.get().getUsername() + " pass : " + pass );
-
-
-            if(passwordEncoder.matches(pass, user.get().getPassword())) {
-                System.out.println("Zalogowano: " + user.get().getPassword());
-                return new UsernamePasswordAuthenticationToken(
-                        user.get().getUsername(),
-                        pass,
-                        Collections.emptyList());
-            }
-
+        if(user == null){
+            System.out.println(" no user");
+            throw new BadCredentialsException(" no user");
         }
 
-        System.out.println("authenticate " + userName);
-        /*
-        Optional<Attempts> userAttempts = attemptsRepository.findAttemptsByUsername(userName);
-        if(userAttempts.isPresent()){
-            Attempts attempts = userAttempts.get();
-            attempts.setAttempts(0);
+        if(!user.isEnabled()){
+            System.out.println(" user is disable ");
+            throw new BadCredentialsException(" user is disable ");
         }
-        */
-        return null;
 
-    }
+        if(!user.isAccountNonExpired()){
+            System.out.println(" user is expired ");
+            throw new BadCredentialsException(" user is expired ");
+        }
 
+        if(!user.isAccountNonLocked()){
+            System.out.println(" user is locked ");
+            throw new BadCredentialsException(" user is locked ");
+        }
 
+        if(!encoder.matches(password, user.getPassword())){
+            System.out.println(" bad password ");
+            processFailedAttempts(user);
+            throw new BadCredentialsException(" bad password ");
+        }
 
+        return new UsernamePasswordAuthenticationToken(username, password, Collections.emptyList());
 
-
+        }
 
 
 /*
-    public Authentication authenticate(Authentication authentication) throws AuthenticationException {
-        if (!StringUtils.endsWithIgnoreCase(authentication.getPrincipal().toString(), Constants.DB_USERNAME_SUFFIX)) {
-            // this user is not supported by DB authentication
-            return null;
+        String username = authentication.getPrincipal() + "";
+        String password = authentication.getCredentials() + "";
+
+        User user = userRepo.findOne(username);
+        if (user == null) {
+            throw new BadCredentialsException("1000");
         }
-
-        UserDetails user = combinedUserDetailsService.loadUserByUsername(authentication.getPrincipal().toString());
-        String rawPw = authentication.getCredentials() == null ? null : authentication.getCredentials().toString();
-
-        if (passwordEncoder.matches(rawPw, user.getPassword())) {
-            LOGGER.warn("User successfully logged in: {}", user.getUsername());
-            return new UsernamePasswordAuthenticationToken(
-                    user.getUsername(),
-                    rawPw,
-                    Collections.emptyList());
-        } else {
-            LOGGER.error("User failed to log in: {}", user.getUsername());
-            throw new BadCredentialsException("Bad password");
+        if (user.isDisabled()) {
+            throw new DisabledException("1001");
         }
-    }
+        if (!encoder.matches(password, user.getPassword())) {
+            throw new BadCredentialsException("1000");
+        }
+        List<Right> userRights = rightRepo.getUserRights(username);
+        return new UsernamePasswordAuthenticationToken(username, password, userRights.stream().map(x -> new SimpleGrantedAuthority(x.getName())).collect(Collectors.toList()));
+*/
 
 
- */
 
-
-
-    private void processFailedAttempts(String userName, User user){
-        Optional<Attempts> userAttempts = attemptsRepository.findAttemptsByUsername(userName);
-        if(userAttempts.isPresent()){
-            System.out.println("isPresent " + userName);
-            Attempts attempts = userAttempts.get();
+    private void processFailedAttempts(User user){
+        Attempts attempts = attemptsRepository.findAttemptsByUsername(user.getUsername());
+        if(attempts != null){
+            System.out.println("isPresent " + user.getUsername());
             attempts.setAttempts(attempts.getAttempts() + 1);
             attemptsRepository.save(attempts);
 
@@ -109,9 +101,9 @@ public class AuthProvider implements AuthenticationProvider {
                 throw new LockedException("To many invalid attempts.");
             }
         }else{
-            System.out.println("not Present " + userName);
-            Attempts attempts = new Attempts();
-            attempts.setUsername(userName);
+            System.out.println("not Present " + user.getUsername());
+            attempts = new Attempts();
+            attempts.setUsername(user.getUsername());
             attempts.setAttempts(1);
             attemptsRepository.save(attempts);
         }
