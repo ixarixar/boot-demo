@@ -2,14 +2,10 @@ package pl.net.lynx.demo1.web.formlogin;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
-import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.authentication.LockedException;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import pl.net.lynx.demo1.config.SecurityUserDetailsService;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
@@ -22,6 +18,9 @@ public class HelloController {
 
     @GetMapping("/")
     public String index(){
+
+
+
         return "index";
     }
 
@@ -49,16 +48,15 @@ public class HelloController {
 
     private String getErrorMessage(HttpServletRequest request, String key) {
         Exception exception = (Exception) request.getSession().getAttribute(key);
-        /*
         String error = "";
-        if (exception instanceof BadCredentialsException) {
-            error = "Invalid username and password!";
-        } else if (exception instanceof LockedException) {
-            error = exception.getMessage();
-        } else {
-            error = exception.getMessage();
-        }*/
-        return exception.getMessage();
+
+        if(exception != null) {
+//            if (exception instanceof Exception) {
+                error = exception.getMessage();
+//            }
+        }
+
+        return error;
     }
 
 
