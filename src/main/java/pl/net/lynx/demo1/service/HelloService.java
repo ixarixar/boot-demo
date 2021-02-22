@@ -1,12 +1,9 @@
-package pl.net.lynx.demo1.web.formlogin;
+package pl.net.lynx.demo1.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import pl.net.lynx.demo1.config.SecurityUserDetailsService;
-
-import java.beans.ExceptionListener;
+import pl.net.lynx.demo1.model.User;
 
 @Service
 public class HelloService {

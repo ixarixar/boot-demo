@@ -9,10 +9,10 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
-import pl.net.lynx.demo1.web.formlogin.Attempts;
-import pl.net.lynx.demo1.web.formlogin.AttemptsRepository;
-import pl.net.lynx.demo1.web.formlogin.User;
-import pl.net.lynx.demo1.web.formlogin.UserRepository;
+import pl.net.lynx.demo1.model.Attempts;
+import pl.net.lynx.demo1.repository.AttemptsRepository;
+import pl.net.lynx.demo1.model.User;
+import pl.net.lynx.demo1.repository.UserRepository;
 
 import java.util.Collections;
 
@@ -20,12 +20,9 @@ import java.util.Collections;
 public class AuthProvider implements AuthenticationProvider {
     private static final int ATTEMPTS_LIMIT = 3;
 
-    @Autowired private SecurityUserDetailsService userDetailsService;
-    @Autowired private PasswordEncoder encoder;
-    @Autowired private AttemptsRepository attemptsRepository;
-    @Autowired private UserRepository userRepository;
-
-
+    @Autowired PasswordEncoder encoder;
+    @Autowired AttemptsRepository attemptsRepository;
+    @Autowired UserRepository userRepository;
 
     @Override
     public Authentication authenticate(Authentication authentication) throws AuthenticationException {
@@ -38,30 +35,27 @@ public class AuthProvider implements AuthenticationProvider {
         User user = userRepository.findUserByUsername(username);
 
         if(user == null){
-            System.out.println(" no user");
-            throw new BadCredentialsException(" no user");
+            throw new BadCredentialsException("no user");
         }
 
         if(!user.isEnabled()){
-            System.out.println(" user is disable ");
-            throw new BadCredentialsException(" user is disable ");
+            throw new BadCredentialsException("user is disable ");
         }
 
         if(!user.isAccountNonExpired()){
-            System.out.println(" user is expired ");
-            throw new BadCredentialsException(" user is expired ");
+            throw new BadCredentialsException("account is expired ");
         }
 
         if(!user.isAccountNonLocked()){
-            System.out.println(" user is locked ");
-            throw new BadCredentialsException(" user is locked ");
+            throw new BadCredentialsException("user is locked ");
         }
 
         if(!encoder.matches(password, user.getPassword())){
-            System.out.println(" bad password ");
             processFailedAttempts(user);
-            throw new BadCredentialsException(" bad password ");
+            throw new BadCredentialsException("bad password ");
         }
+
+        clearAttempts(user);
 
         return new UsernamePasswordAuthenticationToken(username, password, Collections.emptyList());
 
@@ -86,12 +80,20 @@ public class AuthProvider implements AuthenticationProvider {
         return new UsernamePasswordAuthenticationToken(username, password, userRights.stream().map(x -> new SimpleGrantedAuthority(x.getName())).collect(Collectors.toList()));
 */
 
+    private void clearAttempts(User user){
+        Attempts attempts = attemptsRepository.findAttemptsByUsername(user.getUsername());
+        if (attempts == null) {
+            attempts = new Attempts();
+            attempts.setUsername(user.getUsername());
+        }
+        attempts.setAttempts(0);
+        attemptsRepository.save(attempts);
+    }
 
 
     private void processFailedAttempts(User user){
         Attempts attempts = attemptsRepository.findAttemptsByUsername(user.getUsername());
         if(attempts != null){
-            System.out.println("isPresent " + user.getUsername());
             attempts.setAttempts(attempts.getAttempts() + 1);
             attemptsRepository.save(attempts);
 
@@ -101,7 +103,6 @@ public class AuthProvider implements AuthenticationProvider {
                 throw new LockedException("To many invalid attempts.");
             }
         }else{
-            System.out.println("not Present " + user.getUsername());
             attempts = new Attempts();
             attempts.setUsername(user.getUsername());
             attempts.setAttempts(1);

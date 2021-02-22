@@ -11,6 +11,7 @@ public class Application {
 	}
 
 	/*
+
 CREATE TABLE users (
 username VARCHAR(45) NOT NULL ,
 password VARCHAR(120) NOT NULL ,
