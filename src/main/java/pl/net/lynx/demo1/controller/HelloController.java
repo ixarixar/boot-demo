@@ -1,5 +1,7 @@
 package pl.net.lynx.demo1.controller;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -14,27 +16,33 @@ import java.util.Map;
 @Controller
 public class HelloController {
 
+    private static final Logger logger = LogManager.getLogger(HelloController.class);
+
     private final HelloService helloService;
 
     HelloController(HelloService helloService) {
+        logger.info("--------------------START--------------------------");
         this.helloService = helloService;
     }
 
     @GetMapping("/")
     public String index(){
-        return "index";
+
+        return "thymeleaf/index";
     }
 
 
     @GetMapping("/login")
     public String login(HttpServletRequest request, HttpSession session){
+
         session.setAttribute("error", getErrorMessage(request,"SPRING_SECURITY_LAST_EXCEPTION"));
-        return "login.jsp";
+        return "jsp/login";
     }
 
     @GetMapping("/register")
     public String login(){
-        return "register.html";
+
+        return "thymeleaf/register.html";
     }
 
     @PostMapping(
