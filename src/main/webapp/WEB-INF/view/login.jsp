@@ -17,7 +17,7 @@
 </head>
 <body class="bg-white">
 
- <h1>jsp</h1>
+ <h1>jsp</h1> view\
   <div class="container" >
 <%--
     <div class="text-right">

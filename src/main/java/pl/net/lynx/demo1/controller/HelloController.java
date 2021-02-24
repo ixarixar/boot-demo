@@ -28,7 +28,7 @@ public class HelloController {
     @GetMapping("/")
     public String index(){
 
-        return "thymeleaf/index";
+        return "index";
     }
 
 
@@ -36,14 +36,16 @@ public class HelloController {
     public String login(HttpServletRequest request, HttpSession session){
 
         session.setAttribute("error", getErrorMessage(request,"SPRING_SECURITY_LAST_EXCEPTION"));
-        return "jsp/login";
+
+        return "login";
     }
 
     @GetMapping("/register")
     public String login(){
 
-        return "thymeleaf/register.html";
+        return "register";
     }
+
 
     @PostMapping(
             value = "/register",
